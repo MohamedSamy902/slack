@@ -1,59 +1,56 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚀 Slack Monthly Report Generator (SlackDataController)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+هذا الكنترولر (`SlackDataController.php`) مسؤول عن جلب وتجميع وتحليل سجل رسائل المستخدمين من قناة Slack محددة، ومن ثم إنشاء تقرير شهري شامل يتم تصديره كملف Excel متعدد الأوراق.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## ✨ المميزات الرئيسية ومنطق العمل
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+* **جلب الرسائل**: يستخرج جميع رسائل المستخدمين من قناة Slack المحددة للشهر الحالي.
+* **تحديد الدخول/الخروج**:
+    * يحدد **أول دخول** (أقدم رسالة قبل الساعة **16:00**).
+    * يحدد **آخر خروج** (أحدث رسالة بعد الساعة **16:00**).
+* **حساب الساعات**: يحسب إجمالي ساعات التواجد (الفرق بين أول وأحدث رسالة على الإطلاق) والفرق بينها وبين ساعات العمل القياسية (8 ساعات).
+* **تقرير شهري كامل**: يملأ الأيام التي لا تحتوي على رسائل بحالة **'غائب'** لضمان سجل شهري متصل.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🔍 منطق تحديد الحالات (Status) المُعدل
 
-## Learning Laravel
+يتم تحديد الحالة اليومية في التقرير بناءً على منطق التسجيل، مع أولوية خاصة لحالة **'تصريح'**:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+| الحالة | الشرط |
+| :--- | :--- |
+| **غائب** | لم يتم العثور على أي رسائل تسجيل (دخول أو خروج). |
+| **تسجيل ناقص** | تم العثور على تسجيل دخول **أو** خروج فقط. |
+| **كامل** | تم العثور على تسجيل دخول وخروج. |
+| **تصريح** | **(الأولوية العليا)** يتم تحديد هذه الحالة إذا كان هناك: 1) **تسجيل ناقص**، أو 2) **تأخير** (إجمالي الساعات أقل من 8)، و **في نفس الوقت**، تم العثور على كلمة `Pr` أو `permission` في أي من رسائل المستخدم في ذلك اليوم (مع تجاهل حالة الأحرف). |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## ⚙️ الإعدادات والمتطلبات الأساسية
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+لعمل هذا الكنترولر، يجب تحديد المتغيرات التالية في ملف البيئة (`.env`):
 
-### Premium Partners
+| المتغير | الوصف | مثال |
+| :--- | :--- | :--- |
+| `SLACK_BOT_TOKEN` | رمز وصول البوت (يبدأ عادةً بـ `xoxb-`). | `xoxb-xxxxxxxxxxxxxxxx` |
+| `SLACK_CHANNEL_ID` | معرّف القناة (Channel ID) المراد استخراج البيانات منها. | `C0XXXXXXX` |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### الثوابت القابلة للتعديل داخل الكنترولر
 
-## Contributing
+الثوابت التالية تُعرّف قواعد العمل الرئيسية:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+* **`TARGET_TIMEZONE`**: (افتراضياً: `Africa/Cairo`) المنطقة الزمنية لمعالجة الطوابع الزمنية.
+* **`STANDARD_WORK_HOURS`**: (افتراضياً: `8 * 3600`) ساعات العمل القياسية بالثواني.
+* **`CHECK_OUT_HOUR_THRESHOLD`**: (افتراضياً: `16`) ساعة الفصل لتحديد الدخول (قبلها) والخروج (بعدها).
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🚀 كيفية التشغيل
 
-## Security Vulnerabilities
+يتم تشغيل عملية توليد التقرير وتنزيل ملف Excel من خلال استدعاء الدالة `exportReport`:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```php
+// مثال على كيفية تحديد المسار في routes/web.php
+use App\Http\Controllers\SlackDataController;
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Route::get('/report/export', [SlackDataController::class, 'exportReport']);
